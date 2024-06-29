@@ -1,5 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import './App.css';
+
+const TaskItem = memo(({ task, onComplete, onDelete, onMoveBack, isCompleted }) => {
+  console.log(`Rendering TaskItem: ${task}`);
+  return (
+    <li>
+      {task}
+      {isCompleted ? (
+        <>
+          <button onClick={onDelete}>წაშლა</button>
+          <button onClick={onMoveBack}>დაბრუნება</button>
+        </>
+      ) : (
+        <button onClick={onComplete}>დასრულება</button>
+      )}
+    </li>
+  );
+});
+
+const TaskList = memo(({ title, tasks, onTaskAction, isCompleted }) => {
+  console.log(`Rendering TaskList: ${title}`);
+  return (
+    <div className="list">
+      <h2>{title}</h2>
+      <ul>
+        {tasks.map((task, index) => (
+          <TaskItem
+            key={index}
+            task={task}
+            onComplete={() => onTaskAction(index, 'complete')}
+            onDelete={() => onTaskAction(index, 'delete')}
+            onMoveBack={() => onTaskAction(index, 'moveBack')}
+            isCompleted={isCompleted}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+});
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -13,22 +51,25 @@ function App() {
     }
   };
 
-  const completeTask = (index) => {
-    const taskToComplete = tasks[index];
-    setCompletedTasks([...completedTasks, taskToComplete]);
-    setTasks(tasks.filter((_, i) => i !== index));
+  const handleTaskAction = (index, action) => {
+    switch (action) {
+      case 'complete':
+        const taskToComplete = tasks[index];
+        setCompletedTasks([...completedTasks, taskToComplete]);
+        setTasks(tasks.filter((_, i) => i !== index));
+        break;
+      case 'delete':
+        setCompletedTasks(completedTasks.filter((_, i) => i !== index));
+        break;
+      case 'moveBack':
+        const taskToMove = completedTasks[index];
+        setTasks([...tasks, taskToMove]);
+        setCompletedTasks(completedTasks.filter((_, i) => i !== index));
+        break;
+    }
   };
 
-  const deleteTask = (index) => {
-    setCompletedTasks(completedTasks.filter((_, i) => i !== index));
-  };
-
-  const moveBackToTasks = (index) => {
-    const taskToMove = completedTasks[index];
-    setTasks([...tasks, taskToMove]);
-    setCompletedTasks(completedTasks.filter((_, i) => i !== index));
-  };
-
+  console.log('Rendering App');
   return (
     <div className="App">
       <h1>To Do List</h1>
@@ -42,29 +83,18 @@ function App() {
         <button onClick={addTask}>დამატება</button>
       </div>
       <div className="lists-container">
-        <div className="list">
-          <h2>შესასრულებელი დავალებები</h2>
-          <ul>
-            {tasks.map((task, index) => (
-              <li key={index}>
-                {task}
-                <button onClick={() => completeTask(index)}>დასრულება</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="list">
-          <h2>შესრულებული დავალებები</h2>
-          <ul>
-            {completedTasks.map((task, index) => (
-              <li key={index}>
-                {task}
-                <button onClick={() => deleteTask(index)}>წაშლა</button>
-                <button onClick={() => moveBackToTasks(index)}>დაბრუნება</button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <TaskList
+          title="შესასრულებელი დავალებები"
+          tasks={tasks}
+          onTaskAction={handleTaskAction}
+          isCompleted={false}
+        />
+        <TaskList
+          title="შესრულებული დავალებები"
+          tasks={completedTasks}
+          onTaskAction={handleTaskAction}
+          isCompleted={true}
+        />
       </div>
     </div>
   );
